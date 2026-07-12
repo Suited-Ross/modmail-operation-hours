@@ -112,10 +112,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
     def cog_unload(self):
         self.scheduler_loop.cancel()
 
-    # ------------------------------------------------------------------ #
-    # Config helpers
-    # ------------------------------------------------------------------ #
-
     async def get_config(self):
         if self._config_cache is not None:
             return self._config_cache
@@ -124,7 +120,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
             cfg = _default_config()
             await self.db.insert_one(cfg)
         else:
-            # Backfill any keys added in later plugin versions.
             defaults = _default_config()
             changed = False
             for key, value in defaults.items():
@@ -146,10 +141,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
         await self.db.find_one_and_update(
             {"_id": "config"}, {"$set": cfg}, upsert=True
         )
-
-    # ------------------------------------------------------------------ #
-    # Scheduling logic
-    # ------------------------------------------------------------------ #
 
     def _tz(self, cfg):
         from zoneinfo import ZoneInfo
@@ -181,10 +172,9 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
         open_t, close_t = dtime(oh, om), dtime(ch, cm)
 
         if open_t == close_t:
-            return True  # open 24h that day
+            return True 
         if open_t < close_t:
             return open_t <= cur < close_t
-        # overnight range, e.g. 22:00 -> 06:00
         return cur >= open_t or cur < close_t
 
     def get_next_transition(self, cfg, now=None):
@@ -320,7 +310,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
     async def apply_state(self, cfg, open_now, log=True):
         if cfg.get("manage_dm_disabled", True):
             current = self.bot.config.get("dm_disabled")
-            # Never override a manual ALL_THREADS lockdown set by staff.
             if current != DMDisabled.ALL_THREADS.value:
                 if not open_now:
                     await self.sync_core_config(cfg)
@@ -346,7 +335,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
                     if nxt:
                         dt, will_open = nxt
                         label = "Closes" if will_open is False else "Opens"
-                        # nxt describes the NEXT change from current state
                         embed.add_field(
                             name=f"Next transition",
                             value=self._format_dt(dt),
@@ -356,10 +344,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
                         await channel.send(embed=embed)
                     except discord.HTTPException:
                         logger.warning("Opening Hours: failed to send log message.")
-
-    # ------------------------------------------------------------------ #
-    # Background loop
-    # ------------------------------------------------------------------ #
 
     @tasks.loop(seconds=45)
     async def scheduler_loop(self):
@@ -384,10 +368,7 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
     async def before_scheduler_loop(self):
         await self.bot.wait_until_ready()
 
-    # ------------------------------------------------------------------ #
-    # Commands
-    # ------------------------------------------------------------------ #
-
+  
     @commands.group(invoke_without_command=True, aliases=["hour", "openinghours"])
     @checks.has_permissions(PermissionLevel.SUPPORTER)
     async def hours(self, ctx):
@@ -612,8 +593,6 @@ class OpeningHours(commands.Cog, name="Opening Hours"):
                 color=self.bot.main_color,
             )
         )
-
-    # -- embed customisation subgroup ---------------------------------- #
 
     @hours.group(name="embed", invoke_without_command=True)
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
